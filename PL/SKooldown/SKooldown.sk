@@ -1,0 +1,60 @@
+﻿#  ____  _  __           _     _                     
+# / ___|| |/ /___   ___ | | __| | _____      ___ __  
+# \___ \| ' // _ \ / _ \| |/ _` |/ _ \ \ /\ / / '_ \ 
+#  ___) | . \ (_) | (_) | | (_| | (_) \ V  V /| | | |
+# |____/|_|\_\___/ \___/|_|\__,_|\___/ \_/\_/ |_| |_|
+#                   by KwiatekMiki
+# 				 Proszę nie kopiować!
+
+options:
+	prefix.normal: &6SKooldown &8»
+	prefix.error: &cSKooldown &8»
+	prefix.cooldowninfo: &4SKooldown &8»
+
+command /setcooldown <text> [<text>]:
+	permission: skooldown.set
+	permission message: &cnope
+	aliases: setcd, skooldown:setcooldown, skooldown:setcd
+	usage: {@prefix.error} &cDla jakiej komendy mAM NIBY TEN COOLDOWN DAĆ???????????////##?TERD GF # Zmieńcie sobie jak chcecie, mi się nie chce
+	trigger:
+		if arg-2 is set:
+			set {_arg-2} to arg-2
+			replace all "d" in {_arg-2} with " day " 
+			replace all "s" in {_arg-2} with " second " 
+			replace all "m" in {_arg-2} with " minute " 
+			replace all "h" in {_arg-2} with " hour " 
+			set {_czas} to {_arg-2} parsed as timespan
+ 
+			if "%{_czas}%" is "<none>":
+				send "{@prefix.error} &cPodałeś_aś zły czas. Prawidłowe przykłady: 1h2s, 123s, 4d"
+				stop
+			
+			set {skooldown::%arg-1%} to {_czas}
+			add arg-1 to {skooldown::commands::*}
+			send "{@prefix.normal} &aPomyślnie ustawiono cooldown dla &l/%arg-1%&a!"
+		else:
+			send "{@prefix.error} &cPrzepraszam, ale jaki niby cooldown mam ustawić? Prawidłowe przykłady: 1h2s, 123s, 4d" # To samo, zmieńcie jak chcecie
+
+function checkCooldown(command: text, player: player) :: text:
+	set {_temp} to difference between {skooldown::lastused::%{_command}%::%{_player}%} and now
+	set {_tmp} to difference between {skooldown::%{_command}%} and {_temp}
+	set {_temp} to "%{_tmp}%"
+	replace all "days" in {_temp} with "dni"
+	replace all "hours" in {_temp} with "godzin"
+	replace all "minutes" in {_temp} with "minut"
+	replace all "seconds" in {_temp} with "sekund"
+	return "%{_temp}%"
+
+on command:
+	set {_diff} to difference between {skooldown::lastused::%command%::%player%} and now
+	if {skooldown::%command%} is set:
+		if player have permission "skooldown.bypass.%command%" or "skooldown.bypassall":
+			stop
+		else:
+			set {_diff} to difference between {skooldown::lastused::%command%::%player%} and now
+			if {_diff} is smaller than {skooldown::%command%}:
+				cancel event
+				set {_wait} to checkCooldown(command, player)
+				send "{@prefix.cooldowninfo} &cMusisz poczekać %{_wait}% przed użyciem tej komendy ponownie"
+			else:
+				set {skooldown::lastused::%command%::%player%} to now
